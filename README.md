@@ -22,6 +22,7 @@ Ini, TOML
 BINANCE_TESTNET_API_KEY=your_actual_api_key_here
 BINANCE_TESTNET_SECRET_KEY=your_actual_secret_key_here
 
+{ IF YOU WANT A GRAPHICAL INTERFACE THEN DOWNLODE IT AND RUN IN YOU POWER SHELL}
 💻 Running the GUI (Visual Pop-up Window)
 If you want to view a graphical interface instead of using terminal arguments, simply run cli.py with no flags. A clean desktop application window will pop up automatically:
 
@@ -34,7 +35,7 @@ Limit Order Modals: Clean input boxes to specify target entries and exit prices.
 
 Real-time Logs: A live visual printout window inside the UI showing exchange response receipts directly.
 
-
+{IF WANT TO TRY IT IN GITHUB THE USE THIS METHOD}
 
 
 🚀 Execution Commands
