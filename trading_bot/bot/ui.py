@@ -7,22 +7,25 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 class TradingBotUI(ctk.CTk):
-    def __init__(self):
+    def __init__(self, order_manager=None):  # Accepts the parameter cleanly
         super().__init__()
+        
+        # Link the passed order manager to the UI instance
+        self.order_manager = order_manager
         
         # Window configuration
         self.title("⚡ PRIME TRADE — Advanced Futures Terminal")
-        self.geometry("600x650")
+        self.geometry("600x670")
         self.resizable(False, False)
         
         # Configure grid weight for centering layouts
-        self.grid_row_configure(0, weight=1)
-        self.grid_column_configure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
         
         # Main container with nice modern padding
         self.main_frame = ctk.CTkFrame(self, corner_radius=15, fg_color="#1a1c23")
         self.main_frame.grid(row=0, column=0, padx=25, pady=25, sticky="nsew")
-        self.main_frame.grid_column_configure((0, 1), weight=1)
+        self.main_frame.columnconfigure((0, 1), weight=1)
         
         # ---- HEADER LAYER ----
         self.title_label = ctk.CTkLabel(
@@ -33,11 +36,10 @@ class TradingBotUI(ctk.CTk):
         )
         self.title_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(25, 20), sticky="w")
         
-        # ---- PAIR DROPDOWN SELECTOR (NEW UPGRADE!) ----
+        # ---- PAIR DROPDOWN SELECTOR ----
         self.pair_label = ctk.CTkLabel(self.main_frame, text="Crypto Trading Pair:", font=ctk.CTkFont(size=13, weight="bold"))
         self.pair_label.grid(row=1, column=0, padx=20, pady=10, sticky="w")
         
-        # Upgraded to ComboBox with popular trade assets so no typing is required
         self.pair_combo = ctk.CTkComboBox(
             self.main_frame, 
             values=["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT"], 
@@ -76,7 +78,7 @@ class TradingBotUI(ctk.CTk):
         self.qty_entry.grid(row=4, column=1, padx=20, pady=10, sticky="e")
         self.qty_entry.insert(0, "0.005")
         
-        # ---- PRICE INPUT (Hidden by default, shows for LIMIT) ----
+        # ---- PRICE INPUT ----
         self.price_label = ctk.CTkLabel(self.main_frame, text="Limit Price ($):", font=ctk.CTkFont(size=13, weight="bold"))
         self.price_entry = ctk.CTkEntry(self.main_frame, placeholder_text="e.g., 75000", width=200, height=35, fg_color="#282c34")
         
@@ -84,7 +86,7 @@ class TradingBotUI(ctk.CTk):
         self.spacer = ctk.CTkLabel(self.main_frame, text="")
         self.spacer.grid(row=6, column=0, columnspan=2, pady=5)
         
-        # ---- BUTTONS ----
+        # ---- INTERACTIVE ACTION BUTTONS ----
         self.trade_btn = ctk.CTkButton(
             self.main_frame, 
             text="🚀 EXECUTE TESTNET TRANSACTION", 
@@ -131,25 +133,41 @@ class TradingBotUI(ctk.CTk):
         webbrowser.open(url)
 
     def trigger_trade(self):
+        if not self.order_manager:
+            self.update_console("❌ Engine Error: UI running standalone. Please run via cli.py.")
+            return
+
         symbol = self.pair_combo.get()
         side = self.side_var.get()
         order_type = self.type_combo.get()
-        qty = self.qty_entry.get()
-        price = self.price_entry.get() if order_type == "LIMIT" else None
+        
+        try:
+            qty = float(self.qty_entry.get())
+            price = float(self.price_entry.get()) if order_type == "LIMIT" else None
+        except ValueError:
+            self.update_console("❌ Formatting Error: Quantity and Price must be valid numbers.")
+            return
         
         self.update_console(f"➔ Initializing trade dispatch sequence...")
-        self.update_console(f"  • Strategy: {order_type} {side}")
-        self.update_console(f"  • Asset: {qty} {symbol}")
-        if price:
-            self.update_console(f"  • Limit Target: ${price}")
-        self.update_console(f"🟢 Order routed successfully. Response ID logged.")
+        
+        try:
+            response = self.order_manager.place_order(
+                symbol=symbol, 
+                side=side, 
+                order_type=order_type, 
+                quantity=qty, 
+                price=price
+            )
+            
+            if response and "orderId" in response:
+                self.update_console(f"🟢 Order routed successfully! ID: {response['orderId']}")
+            else:
+                self.update_console(f"⚠️ Order dispatched. Verify context on dashboard.")
+        except Exception as e:
+            self.update_console(f"❌ API Engine Error: {str(e)}")
 
     def update_console(self, text):
         self.log_textbox.configure(state="normal")
         self.log_textbox.insert("end", text + "\n")
         self.log_textbox.see("end")
         self.log_textbox.configure(state="disabled")
-
-if __name__ == "__main__":
-    app = TradingBotUI()
-    app.mainloop()
